@@ -19,24 +19,27 @@ export function wilsonLowerBound(win: number, play: number, z = 1.96): number {
 export const MIN_GAMES = 50;
 
 /**
- * A build must also be played at least this often relative to the most popular
- * option in its category. Wilson alone still lets long-tail oddities through:
- * a 32-game start at 78% clears any fixed game count, yet nobody actually
- * builds it. Requiring a real share of the pick distribution keeps the answer
- * to builds people genuinely run.
+ * A build must account for at least this share of all games played, not just a
+ * share of the leading option. Wilson alone still lets long-tail oddities
+ * through: a 266-game core build at 65% clears any fixed game count, yet only
+ * 1.1% of players build it. Measuring against the whole population keeps the
+ * answer to builds people genuinely run.
+ *
+ * Note this is a strict bar for core items, which fragment across many orders —
+ * often only the single most popular one qualifies.
  */
-export const MIN_SHARE_OF_LEADER = 0.1;
+export const MIN_PICK_RATE = 0.1;
 
 export interface Sample {
 	play: number;
 	win: number;
+	/** Share of all games for this champion/role, as op.gg reports it. */
+	pick_rate: number;
 }
 
-/** Entries with enough games, in absolute and relative terms. */
+/** Entries played often enough, in absolute and population terms. */
 function credible<T extends Sample>(entries: T[]): T[] {
-	const mostPlayed = Math.max(...entries.map((e) => e.play));
-	const floor = Math.max(MIN_GAMES, mostPlayed * MIN_SHARE_OF_LEADER);
-	return entries.filter((e) => e.play >= floor);
+	return entries.filter((e) => e.play >= MIN_GAMES && e.pick_rate >= MIN_PICK_RATE);
 }
 
 /**

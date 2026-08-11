@@ -50,9 +50,15 @@ Two guards, both in `src/lib/rank.ts`:
 
 1. **Wilson score lower bound** (95%) instead of raw win rate — small samples
    get pulled toward the mean in proportion to how little we know about them.
-2. **A relevance floor** — a build needs at least 50 games *and* 5% of the games
-   of the most popular option in its category. Wilson alone still lets rare
-   oddities through.
+2. **A relevance floor** — a build needs at least 50 games *and* must account
+   for 10% of all games for that champion and role. Wilson alone still lets rare
+   oddities through: a 266-game core build at 65% clears any fixed game count
+   while only 1.1% of players actually build it.
+
+   This is a strict bar for core items, which fragment across many possible
+   orders. Often only the single most popular core build clears it, which means
+   that section is closer to "most popular" than "highest win rate". Lower
+   `MIN_PICK_RATE` in `src/lib/rank.ts` to trade steadiness for more choice.
 
 If nothing clears the bar (an off-meta champion in an off-role), it falls back
 to the most-played option so the page shows something rather than nothing.

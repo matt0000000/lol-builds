@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ROLES, type Entry, type ItemSet, type Stats } from '$lib/types';
-	import { MIN_GAMES, MIN_SHARE_OF_LEADER } from '$lib/rank';
+	import { MIN_GAMES, MIN_PICK_RATE } from '$lib/rank';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -163,8 +163,8 @@
 	<footer>
 		Patch {build.patch} &middot; ranked solo queue, world, Emerald+ &middot; stats from op.gg, icons from
 		Riot Data Dragon. Builds are ranked by the lower bound of a 95% Wilson interval, and must have
-		at least {MIN_GAMES} games and {MIN_SHARE_OF_LEADER * 100}% of the most popular option's games
-		&mdash; so a rare fluke with a huge win rate can't top the list.
+		at least {MIN_GAMES} games and account for {MIN_PICK_RATE * 100}% of all games &mdash; so a rare
+		fluke with a huge win rate can't top the list.
 	</footer>
 {:else if !data.error}
 	<p class="note">Pick a champion and a role.</p>
