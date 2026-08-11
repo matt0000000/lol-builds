@@ -10,13 +10,25 @@ npm run dev      # development, also reachable from the LAN
 
 ## Running it for real
 
+With Docker, which is how it's deployed:
+
 ```bash
-npm run build
-npm start        # http://<your-lan-ip>:3100
+docker compose up -d --build   # http://<your-lan-ip>:3100
+docker compose logs -f
+docker compose down
 ```
 
-`npm start` binds to `0.0.0.0`, so anything on the same network can reach it.
-Override the port with `PORT=8000 npm start` if 3100 is taken.
+The container listens on 3000 internally and is published on host port 3100,
+bound to `0.0.0.0` so anything on the same network can reach it. Change the host
+port in `compose.yaml` if 3100 is taken. `restart: unless-stopped` brings it back
+after a reboot or a daemon restart.
+
+Without Docker:
+
+```bash
+npm run build
+npm start        # http://<your-lan-ip>:3100, override with PORT=8000
+```
 
 ## How it works
 
@@ -70,5 +82,11 @@ final purchase.
 ## Deploying
 
 Uses `@sveltejs/adapter-node`, so `npm run build` produces a plain Node server
-in `build/` that runs anywhere with `node build`. For a serverless host, swap in
-that platform's adapter (`adapter-vercel`, `adapter-netlify`, …).
+in `build/` that runs anywhere with `node build`. The `Dockerfile` wraps that in
+a two-stage build — dev dependencies compile the app, then only `build/` and
+pruned production `node_modules` are copied into the runtime image, which runs
+as the unprivileged `node` user.
+
+Because the image is a plain Node server, the same `compose.yaml` works on any
+Docker host, not just this machine. For a serverless host instead, swap in that
+platform's adapter (`adapter-vercel`, `adapter-netlify`, …).

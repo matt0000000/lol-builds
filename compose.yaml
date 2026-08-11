@@ -1,0 +1,20 @@
+services:
+  web:
+    build: .
+    image: lol-builds
+    container_name: lol-builds
+    # Host 3100 is the LAN-facing port; 3000 is where the server listens
+    # inside the container. Port 3000 on this host is taken by another app.
+    ports:
+      - '3100:3000'
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    healthcheck:
+      # Any 2xx/3xx means the server is answering; the champion list has to
+      # load from Data Dragon before the page can render at all.
+      test: ['CMD', 'wget', '--spider', '-q', 'http://127.0.0.1:3000/']
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
