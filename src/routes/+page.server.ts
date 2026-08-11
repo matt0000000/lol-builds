@@ -16,7 +16,11 @@ export const load: PageServerLoad = async ({ url, setHeaders }) => {
 		return { champions, champ: null, role, build: null, error: null };
 	}
 
-	setHeaders({ 'cache-control': 'public, max-age=1800' });
+	// Deliberately no browser caching. Upstream responses are already cached in
+	// memory, so a revalidation is cheap, and caching the rendered page meant a
+	// change to region/rank/ranking wouldn't show up in an open tab for half an
+	// hour — which reads as the site being broken.
+	setHeaders({ 'cache-control': 'no-cache' });
 
 	try {
 		const build = await buildPage(champ, role);
