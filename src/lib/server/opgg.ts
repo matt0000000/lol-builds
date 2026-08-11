@@ -7,9 +7,10 @@ import type { BuildPage, ItemSet, Role, RuneSet, SkillOrder } from '$lib/types';
  * op.gg's own front end reads these JSON endpoints, so we take the same feed
  * rather than parsing rendered HTML — stable shape, no markup churn.
  */
-const REGION = 'kr';
-/** Platinum and above. The endpoint's own default is a different slice, so set it explicitly. */
-const TIER = 'platinum_plus';
+/** `global` is op.gg's worldwide aggregate, not a specific server. */
+const REGION = 'global';
+/** Emerald and above. The endpoint's own default is a different slice, so set it explicitly. */
+const TIER = 'emerald_plus';
 const API = `https://lol-api-champion.op.gg/api/${REGION}/champions/ranked`;
 
 interface Sample {

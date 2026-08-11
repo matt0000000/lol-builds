@@ -161,7 +161,7 @@
 	{/if}
 
 	<footer>
-		Patch {build.patch} &middot; ranked solo queue, Korea, Platinum+ &middot; stats from op.gg, icons from
+		Patch {build.patch} &middot; ranked solo queue, world, Emerald+ &middot; stats from op.gg, icons from
 		Riot Data Dragon. Builds are ranked by the lower bound of a 95% Wilson interval, and must have
 		at least {MIN_GAMES} games and {MIN_SHARE_OF_LEADER * 100}% of the most popular option's games
 		&mdash; so a rare fluke with a huge win rate can't top the list.

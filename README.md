@@ -29,7 +29,8 @@ shareable URL: `/?champ=Aatrox&role=top`.
 Two sources, no HTML scraping:
 
 - **Build stats** — `lol-api-champion.op.gg`, the JSON API op.gg's own front end
-  reads. Stable shape, no markup to break. Ranked solo queue.
+  reads. Stable shape, no markup to break. Ranked solo queue, worldwide,
+  Emerald+ — both set as constants at the top of `src/lib/server/opgg.ts`.
 - **Names and icons** — Riot's Data Dragon (champions, items, summoner spells)
   and Community Dragon (runes and stat shards, which Data Dragon doesn't cover
   in one file).
