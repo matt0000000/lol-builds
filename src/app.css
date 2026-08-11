@@ -1,0 +1,202 @@
+/* Deliberately plain. Times, black on white, 1px rules, blue links.
+   No shadows, no gradients, no rounded corners. */
+
+body {
+	font-family: 'Times New Roman', Times, serif;
+	font-size: 17px;
+	line-height: 1.5;
+	color: #000;
+	background: #fff;
+	margin: 0;
+	padding: 2rem 1rem 4rem;
+}
+
+.page {
+	max-width: 46rem;
+	margin: 0 auto;
+}
+
+h1 {
+	font-size: 1.7rem;
+	margin: 0 0 0.15rem;
+	font-weight: normal;
+}
+
+h1 a {
+	color: #000;
+	text-decoration: none;
+}
+
+h2 {
+	font-size: 1.05rem;
+	font-weight: bold;
+	margin: 1.75rem 0 0.4rem;
+	border-bottom: 1px solid #000;
+	padding-bottom: 0.15rem;
+}
+
+.tagline {
+	margin: 0 0 1.25rem;
+	color: #444;
+	font-style: italic;
+	font-size: 0.95rem;
+}
+
+a {
+	color: #00c;
+}
+
+a:visited {
+	color: #551a8b;
+}
+
+hr {
+	border: 0;
+	border-top: 1px solid #000;
+	margin: 1.5rem 0;
+}
+
+/* Form */
+
+form {
+	border: 1px solid #000;
+	padding: 0.75rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+label {
+	font-size: 0.9rem;
+}
+
+select,
+button {
+	font-family: inherit;
+	font-size: 0.95rem;
+	padding: 0.15rem 0.25rem;
+	border: 1px solid #000;
+	background: #fff;
+	color: #000;
+}
+
+button {
+	cursor: pointer;
+	padding: 0.15rem 0.9rem;
+}
+
+button:hover {
+	background: #000;
+	color: #fff;
+}
+
+/* Build display */
+
+.headline {
+	margin: 1.5rem 0 0;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.headline img {
+	width: 48px;
+	height: 48px;
+	border: 1px solid #000;
+}
+
+.headline h2 {
+	border: 0;
+	margin: 0;
+	font-size: 1.3rem;
+	font-weight: normal;
+}
+
+.row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem;
+	margin: 0.4rem 0;
+}
+
+.item {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	border: 1px solid #999;
+	padding: 0.15rem 0.35rem;
+	font-size: 0.85rem;
+	white-space: nowrap;
+}
+
+.item img {
+	width: 26px;
+	height: 26px;
+	display: block;
+}
+
+.item.shard img {
+	width: 20px;
+	height: 20px;
+}
+
+.arrow {
+	color: #666;
+}
+
+.stat {
+	font-size: 0.85rem;
+	color: #444;
+	margin: 0.15rem 0 0;
+}
+
+.stat b {
+	color: #000;
+}
+
+.skills {
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 0.9rem;
+	letter-spacing: 0.08em;
+	margin: 0.3rem 0;
+}
+
+table {
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+th,
+td {
+	border: 1px solid #999;
+	padding: 0.2rem 0.5rem;
+	text-align: left;
+}
+
+th {
+	background: #eee;
+	font-weight: bold;
+}
+
+.note,
+.error {
+	font-size: 0.85rem;
+	color: #444;
+}
+
+.error {
+	border: 1px solid #000;
+	padding: 0.5rem;
+	background: #f4f4f4;
+	color: #000;
+}
+
+footer {
+	margin-top: 2.5rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid #000;
+	font-size: 0.8rem;
+	color: #444;
+}
