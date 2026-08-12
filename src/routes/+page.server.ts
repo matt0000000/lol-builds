@@ -1,43 +1,50 @@
-import { buildPage, championList } from '$lib/server/opgg';
+import { redirect } from '@sveltejs/kit';
+import { championList } from '$lib/server/opgg';
+import { normalizeName } from '$lib/server/static-data';
+import { DEFAULT_REGION, DEFAULT_TIER, toRegion, toTier } from '$lib/config';
 import { ROLES, type Role } from '$lib/types';
 import type { PageServerLoad } from './$types';
 
-const isRole = (value: string | null): value is Role =>
-	ROLES.some((r) => r.id === value);
+const toRole = (value: string | null): Role =>
+	ROLES.some((r) => r.id === value) ? (value as Role) : 'top';
 
-export const load: PageServerLoad = async ({ url, setHeaders }) => {
+export const load: PageServerLoad = async ({ url }) => {
 	const champions = await championList();
-
 	const champ = url.searchParams.get('champ');
-	const roleParam = url.searchParams.get('role');
-	const role: Role = isRole(roleParam) ? roleParam : 'top';
 
-	if (!champ) {
-		return { champions, champ: null, role, build: null, error: null };
-	}
+	// The picker submits here; send it on to the canonical /[champion]/[role].
+	if (champ) {
+		const match = champions.find(
+			(c) => normalizeName(c.name) === normalizeName(champ) || normalizeName(c.key) === normalizeName(champ)
+		);
 
-	// Deliberately no browser caching. Upstream responses are already cached in
-	// memory, so a revalidation is cheap, and caching the rendered page meant a
-	// change to region/rank/ranking wouldn't show up in an open tab for half an
-	// hour — which reads as the site being broken.
-	setHeaders({ 'cache-control': 'no-cache' });
+		if (match) {
+			const role = toRole(url.searchParams.get('role'));
+			const region = toRegion(url.searchParams.get('region'));
+			const tier = toTier(url.searchParams.get('tier'));
+			const query = new URLSearchParams();
+			if (region !== DEFAULT_REGION) query.set('region', region);
+			if (tier !== DEFAULT_TIER) query.set('tier', tier);
+			const suffix = query.size ? `?${query}` : '';
+			redirect(303, `/${match.key}/${role}${suffix}`);
+		}
 
-	try {
-		const build = await buildPage(champ, role);
 		return {
 			champions,
 			champ,
-			role,
-			build,
-			error: build ? null : `No champion called "${champ}".`
-		};
-	} catch (e) {
-		return {
-			champions,
-			champ,
-			role,
-			build: null,
-			error: e instanceof Error ? e.message : 'Could not reach the stats source.'
+			role: toRole(url.searchParams.get('role')),
+			region: toRegion(url.searchParams.get('region')),
+			tier: toTier(url.searchParams.get('tier')),
+			error: `No champion called "${champ}".`
 		};
 	}
+
+	return {
+		champions,
+		champ: '',
+		role: 'top' as Role,
+		region: toRegion(url.searchParams.get('region')),
+		tier: toTier(url.searchParams.get('tier')),
+		error: null
+	};
 };

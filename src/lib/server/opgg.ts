@@ -1,17 +1,25 @@
 import { cached, HOUR } from './cache';
-import { lookup, staticData } from './static-data';
-import { best, bestN } from '$lib/rank';
-import type { BuildPage, ItemSet, Role, RuneSet, SkillOrder } from '$lib/types';
+import { lookup, normalizeName, staticData } from './static-data';
+import { best, bestN, meetsFloor, mostPlayed } from '$lib/rank';
+import type { Region, Tier } from '$lib/config';
+import type {
+	BuildPage,
+	Choice,
+	GameLength,
+	ItemSet,
+	Matchup,
+	Role,
+	RuneSet,
+	SkillOrder,
+	Stats,
+	TrendPoint
+} from '$lib/types';
 
 /**
  * op.gg's own front end reads these JSON endpoints, so we take the same feed
  * rather than parsing rendered HTML — stable shape, no markup churn.
  */
-/** `global` is op.gg's worldwide aggregate, not a specific server. */
-const REGION = 'global';
-/** Emerald and above. The endpoint's own default is a different slice, so set it explicitly. */
-const TIER = 'emerald_plus';
-const API = `https://lol-api-champion.op.gg/api/${REGION}/champions/ranked`;
+const API = 'https://lol-api-champion.op.gg/api';
 
 interface Sample {
 	play: number;
@@ -31,10 +39,14 @@ interface RuneRow extends Sample {
 interface SkillRow extends Sample {
 	order: string[];
 }
+interface MasteryRow extends Sample {
+	ids: string[];
+}
 
 interface ChampionResponse {
 	data: {
 		summary: {
+			average_stats?: { kda?: number; ban_rate?: number; tier?: number; rank?: number };
 			positions: {
 				name: string;
 				stats: { win_rate: number; pick_rate: number; play?: number; win?: number };
@@ -47,20 +59,28 @@ interface ChampionResponse {
 		last_items?: ItemRow[];
 		runes?: RuneRow[];
 		skills?: SkillRow[];
+		skill_masteries?: MasteryRow[];
+		counters?: { champion_id: number; play: number; win: number }[];
+		game_lengths?: { game_length: number; rate: number; average: number }[];
+		trends?: { win?: { version: string; rate: number }[] };
 	};
 }
 
-function raw(championId: number, role: Role): Promise<ChampionResponse> {
-	return cached(`opgg:${REGION}:${TIER}:${championId}:${role}`, 6 * HOUR, async () => {
-		const res = await fetch(`${API}/${championId}/${role}?tier=${TIER}`, {
-			headers: { accept: 'application/json' }
-		});
+function raw(
+	championId: number,
+	role: Role,
+	region: Region,
+	tier: Tier
+): Promise<ChampionResponse> {
+	return cached(`opgg:${region}:${tier}:${championId}:${role}`, 6 * HOUR, async () => {
+		const url = `${API}/${region}/champions/ranked/${championId}/${role}?tier=${tier}`;
+		const res = await fetch(url, { headers: { accept: 'application/json' } });
 		if (!res.ok) throw new Error(`op.gg responded ${res.status} for ${championId}/${role}`);
 		return res.json() as Promise<ChampionResponse>;
 	});
 }
 
-function record(sample: Sample) {
+function record(sample: Sample): Stats {
 	return {
 		play: sample.play,
 		win: sample.win,
@@ -69,47 +89,105 @@ function record(sample: Sample) {
 	};
 }
 
-export async function buildPage(championKey: string, role: Role): Promise<BuildPage | null> {
+/** Build a best/popular pair, dropping `popular` when it's the same option. */
+function choose<Row extends Sample, T>(
+	rows: Row[] | undefined,
+	same: (a: Row, b: Row) => boolean,
+	map: (row: Row) => T
+): Choice<T> {
+	const top = best(rows);
+	const common = mostPlayed(rows);
+	return {
+		best: top ? map(top) : null,
+		popular: common && top && !same(common, top) ? map(common) : null,
+		provisional: top ? !meetsFloor(top) : false
+	};
+}
+
+const sameIds = (a: { ids: number[] }, b: { ids: number[] }) => a.ids.join() === b.ids.join();
+
+export async function buildPage(
+	championKey: string,
+	role: Role,
+	region: Region,
+	tier: Tier
+): Promise<BuildPage | null> {
 	const data = await staticData();
-	const champion = data.championByKey.get(championKey.toLowerCase());
+	const champion =
+		data.championByKey.get(championKey.toLowerCase()) ??
+		data.championByKey.get(normalizeName(championKey));
 	if (!champion) return null;
 
-	const { data: d } = await raw(champion.id, role);
+	const { data: d } = await raw(champion.id, role, region, tier);
 
-	const itemSet = (row: ItemRow | null): ItemSet | null =>
-		row ? { ...record(row), items: lookup(data.items, row.ids) } : null;
+	const toItems = (row: ItemRow): ItemSet => ({
+		...record(row),
+		items: lookup(data.items, row.ids)
+	});
 
-	const runeRow = best(d.runes);
-	const runes: RuneSet | null = runeRow
-		? {
-				...record(runeRow),
-				primaryTree: data.perkTrees.get(runeRow.primary_page_id) ?? {
-					id: runeRow.primary_page_id,
-					name: 'Primary',
-					icon: ''
-				},
-				primary: lookup(data.perks, runeRow.primary_rune_ids),
-				secondaryTree: data.perkTrees.get(runeRow.secondary_page_id) ?? {
-					id: runeRow.secondary_page_id,
-					name: 'Secondary',
-					icon: ''
-				},
-				secondary: lookup(data.perks, runeRow.secondary_rune_ids),
-				shards: lookup(data.perks, runeRow.stat_mod_ids)
-			}
-		: null;
+	const toRunes = (row: RuneRow): RuneSet => ({
+		...record(row),
+		primaryTree: data.perkTrees.get(row.primary_page_id) ?? {
+			id: row.primary_page_id,
+			name: 'Primary',
+			icon: ''
+		},
+		primary: lookup(data.perks, row.primary_rune_ids),
+		secondaryTree: data.perkTrees.get(row.secondary_page_id) ?? {
+			id: row.secondary_page_id,
+			name: 'Secondary',
+			icon: ''
+		},
+		secondary: lookup(data.perks, row.secondary_rune_ids),
+		shards: lookup(data.perks, row.stat_mod_ids)
+	});
 
-	const spellRow = best(d.summoner_spells);
-	const skillRow = best(d.skills);
-	const skills: SkillOrder | null = skillRow
-		? { ...record(skillRow), order: skillRow.order }
-		: null;
+	const toSkills = (row: SkillRow): SkillOrder => ({ ...record(row), order: row.order });
 
-	const rolePosition = d.summary.positions.find((p) => p.name.toLowerCase() === roleToPosition(role));
+	const rolePosition = d.summary.positions.find((p) => p.name.toLowerCase() === role);
+	const avg = d.summary.average_stats;
+
+	// `win` in the counters feed counts this champion's wins in the matchup, not
+	// the opponent's — verified by aggregating it back to the role win rate.
+	// Rare matchups swing wildly, so require a real sample before calling one bad.
+	const worstMatchups: Matchup[] = (d.counters ?? [])
+		.filter((c) => c.play >= 100 && data.championById.has(c.champion_id))
+		.map((c) => ({
+			champion: data.championById.get(c.champion_id)!,
+			play: c.play,
+			win: c.win,
+			winRate: c.win / c.play
+		}))
+		.sort((a, b) => a.winRate - b.winRate)
+		.slice(0, 6);
+
+	const gameLengths: GameLength[] = (d.game_lengths ?? []).map((g, i, all) => ({
+		from: g.game_length,
+		label: bucketLabel(g.game_length, i, all.length),
+		winRate: g.rate,
+		average: g.average
+	}));
+
+	const trend: TrendPoint[] = (d.trends?.win ?? [])
+		.slice(0, 6)
+		.map((t) => ({ patch: t.version, winRate: t.rate }));
+
+	const starters = choose(d.starter_items, sameIds, toItems);
+	const core = choose(d.core_items, sameIds, toItems);
+	const boots = choose(d.boots, sameIds, toItems);
+	const runes = choose(
+		d.runes,
+		(a, b) =>
+			a.primary_rune_ids.join() === b.primary_rune_ids.join() &&
+			a.secondary_rune_ids.join() === b.secondary_rune_ids.join(),
+		toRunes
+	);
 
 	return {
 		champion,
 		role,
+		region,
+		tier,
 		patch: data.patch,
 		roleRecord: rolePosition
 			? {
@@ -117,6 +195,14 @@ export async function buildPage(championKey: string, role: Role): Promise<BuildP
 					win: rolePosition.stats.win ?? 0,
 					winRate: rolePosition.stats.win_rate,
 					pickRate: rolePosition.stats.pick_rate
+				}
+			: null,
+		standing: avg
+			? {
+					tier: avg.tier ?? 0,
+					rank: avg.rank ?? 0,
+					kda: avg.kda ?? 0,
+					banRate: avg.ban_rate ?? 0
 				}
 			: null,
 		playedRoles: d.summary.positions
@@ -127,24 +213,33 @@ export async function buildPage(championKey: string, role: Role): Promise<BuildP
 			}))
 			.filter((p): p is { role: Role; winRate: number; pickRate: number } => p.role !== null)
 			.sort((a, b) => b.pickRate - a.pickRate),
-		starters: itemSet(best(d.starter_items)),
-		core: itemSet(best(d.core_items)),
-		boots: itemSet(best(d.boots)),
+		starters,
+		core,
+		boots,
 		situational: bestN(
 			d.last_items?.filter((row) => row.ids.every((id) => data.legendaryItems.has(id))),
 			5
-		)
-			.map(itemSet)
-			.filter((s): s is ItemSet => s !== null),
+		).map(toItems),
 		runes,
-		spells: spellRow ? { ...record(spellRow), items: lookup(data.spells, spellRow.ids) } : null,
-		skills
+		spells: choose(d.summoner_spells, sameIds, (row) => ({
+			...record(row),
+			items: lookup(data.spells, row.ids)
+		})),
+		skills: choose(d.skills, (a, b) => a.order.join() === b.order.join(), toSkills),
+		skillMax: mostPlayed(d.skill_masteries)?.ids ?? null,
+		worstMatchups,
+		gameLengths,
+		trend,
+		provisional:
+			starters.provisional || core.provisional || boots.provisional || runes.provisional
 	};
 }
 
-/** op.gg names positions TOP/JUNGLE/MID/ADC/SUPPORT — same slugs we use. */
-function roleToPosition(role: Role): string {
-	return role;
+/** Buckets arrive as lower bounds: 0, 25, 30, 35, 40 minutes. */
+function bucketLabel(from: number, index: number, total: number): string {
+	if (index === 0) return '< 25 min';
+	if (index === total - 1) return `${from}+ min`;
+	return `${from}–${from + 5} min`;
 }
 
 function positionToRole(name: string): Role | null {

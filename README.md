@@ -1,12 +1,17 @@
 # LoL Builds
 
 Pick a champion and a role, get the highest win rate starting items, core items,
-boots and runes. That's the whole site.
+boots and runes — plus hardest matchups, win rate by game length, and how the
+champion has trended over recent patches.
 
 ```bash
 npm install
 npm run dev      # development, also reachable from the LAN
+npm test         # ranking and item set logic
 ```
+
+Builds live at `/[champion]/[role]`, e.g. `/LeeSin/jungle?tier=all`. Region and
+rank are query parameters, defaulting to worldwide Emerald+.
 
 ## Running it for real
 
@@ -53,6 +58,21 @@ See `src/lib/server/cache.ts`.
 Note that the op.gg endpoint is undocumented and could change without warning.
 If builds stop loading, that's the first place to look — `src/lib/server/opgg.ts`.
 
+All 19 regions and 16 ranks the endpoint accepts are listed in `src/lib/config.ts`
+and selectable in the UI. Values were verified against the API, which rejects
+anything unrecognised with a 422 rather than silently returning the wrong slice.
+
+The counters feed counts *this champion's* wins in each matchup, not the
+opponent's — confirmed by aggregating it back to the champion's overall role win
+rate. Getting that backwards would invert the matchup table.
+
+## Item set export
+
+Each build page links to `/[champion]/[role]/itemset`, which returns the JSON
+format the League client imports. Save it under
+`Config/Champions/<Name>/Recommended/` and restart the client to see the build
+in the in-game shop.
+
 ## Picking the "best" build
 
 Ranking by raw win rate does not work. A start played 32 times with 25 wins
@@ -71,6 +91,17 @@ Two guards, both in `src/lib/rank.ts`:
    orders. Often only the single most popular core build clears it, which means
    that section is closer to "most popular" than "highest win rate". Lower
    `MIN_PICK_RATE` in `src/lib/rank.ts` to trade steadiness for more choice.
+
+Because no threshold settles the "best versus most common" question on its own,
+the page shows the most-played option alongside the highest win rate one
+whenever they differ. Garen's highest win rate start is Doran's Blade while most
+players open Doran's Shield; both are worth knowing.
+
+When nothing clears the floors — which happens for a few days after every patch,
+when the source resets its sample — the page falls back to the most-played
+option and says so, rather than presenting a fifteen-game build as authoritative.
+
+`src/lib/rank.ts` is covered by tests; run `npm test`.
 
 If nothing clears the bar (an off-meta champion in an off-role), it falls back
 to the most-played option so the page shows something rather than nothing.
