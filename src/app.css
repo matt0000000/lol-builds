@@ -180,60 +180,6 @@ th {
 	font-weight: bold;
 }
 
-/* The most-popular alternative, secondary to the highest win rate pick. */
-.alt {
-	font-size: 0.85rem;
-	color: #444;
-	margin: 0.15rem 0 0;
-	padding-left: 0.6rem;
-	border-left: 2px solid #ccc;
-}
-
-details {
-	font-size: 0.85rem;
-	margin: 0.35rem 0;
-}
-
-summary {
-	cursor: pointer;
-	color: #00c;
-}
-
-td.up {
-	color: #060;
-}
-
-td.down {
-	color: #900;
-}
-
-code {
-	font-family: 'Courier New', Courier, monospace;
-	font-size: 0.85em;
-	background: #f4f4f4;
-	padding: 0 0.2em;
-}
-
-input {
-	font-family: inherit;
-	font-size: 0.95rem;
-	padding: 0.15rem 0.25rem;
-	border: 1px solid #000;
-	background: #fff;
-	color: #000;
-	width: 11rem;
-}
-
-/* Shown when the source has too few games to rank properly, e.g. a fresh patch. */
-.warning {
-	border: 1px solid #000;
-	border-left-width: 4px;
-	padding: 0.5rem 0.6rem;
-	margin: 1rem 0 0;
-	background: #f9f9f9;
-	font-size: 0.85rem;
-}
-
 .note,
 .error {
 	font-size: 0.85rem;

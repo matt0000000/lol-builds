@@ -51,7 +51,6 @@ export interface StaticData {
 	patch: string;
 	champions: Champion[];
 	championById: Map<number, Champion>;
-	/** Keyed by Data Dragon id, display name and a punctuation-stripped form. */
 	championByKey: Map<string, Champion>;
 	items: Map<number, Entry>;
 	/** Finished, buyable Summoner's Rift items — no components, no consumables. */
@@ -130,7 +129,7 @@ export function staticData(): Promise<StaticData> {
 			patch: version,
 			champions,
 			championById: new Map(champions.map((c) => [c.id, c])),
-			championByKey: buildLookup(champions),
+			championByKey: new Map(champions.map((c) => [c.key.toLowerCase(), c])),
 			items,
 			legendaryItems,
 			spells,
@@ -138,25 +137,6 @@ export function staticData(): Promise<StaticData> {
 			perkTrees
 		};
 	});
-}
-
-/** Strip case, spaces and punctuation, so "Kai'Sa" and "kaisa" both resolve. */
-export function normalizeName(value: string): string {
-	return value.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-/**
- * The search box lets people type a display name, while URLs carry the Data
- * Dragon key. Index both, plus a normalized form, so all of them resolve.
- */
-function buildLookup(champions: Champion[]): Map<string, Champion> {
-	const map = new Map<string, Champion>();
-	for (const champion of champions) {
-		map.set(champion.key.toLowerCase(), champion);
-		map.set(normalizeName(champion.key), champion);
-		map.set(normalizeName(champion.name), champion);
-	}
-	return map;
 }
 
 const UNKNOWN = (id: number): Entry => ({ id, name: `#${id}`, icon: '' });

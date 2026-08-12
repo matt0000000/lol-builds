@@ -37,14 +37,9 @@ export interface Sample {
 	pick_rate: number;
 }
 
-/** Whether a single entry clears both floors. */
-export function meetsFloor(entry: Sample): boolean {
-	return entry.play >= MIN_GAMES && entry.pick_rate >= MIN_PICK_RATE;
-}
-
 /** Entries played often enough, in absolute and population terms. */
 function credible<T extends Sample>(entries: T[]): T[] {
-	return entries.filter(meetsFloor);
+	return entries.filter((e) => e.play >= MIN_GAMES && e.pick_rate >= MIN_PICK_RATE);
 }
 
 /**
@@ -63,16 +58,6 @@ export function best<T extends Sample>(entries: T[] | undefined): T | null {
 	return pool.reduce((a, b) =>
 		wilsonLowerBound(b.win, b.play) > wilsonLowerBound(a.win, a.play) ? b : a
 	);
-}
-
-/**
- * The most-played entry, ignoring win rate entirely. Shown next to the
- * highest-win-rate pick: "best" and "most common" answer different questions,
- * and seeing both is more honest than tuning a threshold until one wins.
- */
-export function mostPlayed<T extends Sample>(entries: T[] | undefined): T | null {
-	if (!entries?.length) return null;
-	return entries.reduce((a, b) => (b.play > a.play ? b : a));
 }
 
 /** Top N by Wilson lower bound, for lists like situational items. */
