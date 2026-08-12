@@ -129,7 +129,7 @@ export function staticData(): Promise<StaticData> {
 			patch: version,
 			champions,
 			championById: new Map(champions.map((c) => [c.id, c])),
-			championByKey: new Map(champions.map((c) => [c.key.toLowerCase(), c])),
+			championByKey: buildLookup(champions),
 			items,
 			legendaryItems,
 			spells,
@@ -137,6 +137,25 @@ export function staticData(): Promise<StaticData> {
 			perkTrees
 		};
 	});
+}
+
+/** Strip case, spaces and punctuation, so "Kai'Sa" and "kaisa" both resolve. */
+export function normalizeName(value: string): string {
+	return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * The search box submits whatever was typed, so index display names as well as
+ * Data Dragon keys — otherwise "Kai'Sa" and "Lee Sin" fail to resolve.
+ */
+function buildLookup(champions: Champion[]): Map<string, Champion> {
+	const map = new Map<string, Champion>();
+	for (const champion of champions) {
+		map.set(champion.key.toLowerCase(), champion);
+		map.set(normalizeName(champion.key), champion);
+		map.set(normalizeName(champion.name), champion);
+	}
+	return map;
 }
 
 const UNKNOWN = (id: number): Entry => ({ id, name: `#${id}`, icon: '' });

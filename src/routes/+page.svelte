@@ -7,6 +7,33 @@
 
 	const build = $derived(data.build);
 
+	// Writable deriveds: typing overwrites them, and they resync when a
+	// navigation replaces `data`, so the box always reflects what's on screen.
+	let role = $derived(data.role);
+	let query = $derived(data.build?.champion.name ?? data.champ ?? '');
+
+	const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+	/**
+	 * Substring matching on a punctuation-stripped name, so "sa" finds Kai'Sa and
+	 * "leesin"/"lee sin" both work. Names starting with the query rank first.
+	 */
+	const matches = $derived.by(() => {
+		const q = normalize(query);
+		if (!q) return [];
+		// Nothing to suggest once the typed name is the build already on screen.
+		if (build && normalize(build.champion.name) === q) return [];
+
+		const starts = [];
+		const contains = [];
+		for (const champion of data.champions) {
+			const name = normalize(champion.name);
+			if (name.startsWith(q)) starts.push(champion);
+			else if (name.includes(q)) contains.push(champion);
+		}
+		return [...starts, ...contains].slice(0, 8);
+	});
+
 	const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 	const games = (n: number) => n.toLocaleString('en-US');
 </script>
@@ -52,23 +79,37 @@
 
 <form method="GET" action="/">
 	<label for="champ">Champion</label>
-	<select id="champ" name="champ">
-		{#each data.champions as champion (champion.id)}
-			<option value={champion.key} selected={champion.key === data.champ}>
-				{champion.name}
-			</option>
-		{/each}
-	</select>
+	<input
+		id="champ"
+		name="champ"
+		bind:value={query}
+		placeholder="Search…"
+		autocomplete="off"
+		required
+	/>
 
 	<label for="role">Role</label>
-	<select id="role" name="role">
-		{#each ROLES as role (role.id)}
-			<option value={role.id} selected={role.id === data.role}>{role.label}</option>
+	<select id="role" name="role" bind:value={role}>
+		{#each ROLES as option (option.id)}
+			<option value={option.id}>{option.label}</option>
 		{/each}
 	</select>
 
 	<button type="submit">Show build</button>
 </form>
+
+{#if matches.length}
+	<!-- Suggestions are plain links, so picking one is a single click and the
+	     keyboard still works: type a name and press Enter to submit the form. -->
+	<div class="matches">
+		{#each matches as champion (champion.id)}
+			<a class="item" href="/?champ={champion.key}&role={role}">
+				<img src={champion.icon} alt="" loading="lazy" />
+				{champion.name}
+			</a>
+		{/each}
+	</div>
+{/if}
 
 {#if data.error}
 	<p class="error">{data.error}</p>
@@ -167,5 +208,5 @@
 		fluke with a huge win rate can't top the list.
 	</footer>
 {:else if !data.error}
-	<p class="note">Pick a champion and a role.</p>
+	<p class="note">Search for a champion.</p>
 {/if}

@@ -71,6 +71,7 @@ label {
 	font-size: 0.9rem;
 }
 
+input,
 select,
 button {
 	font-family: inherit;
@@ -79,6 +80,28 @@ button {
 	border: 1px solid #000;
 	background: #fff;
 	color: #000;
+}
+
+input {
+	width: 10rem;
+}
+
+/* Suggestions under the search box. Links, so one click picks a champion. */
+.matches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin: 0.4rem 0 0;
+}
+
+.matches a {
+	color: #000;
+	text-decoration: none;
+}
+
+.matches a:hover {
+	background: #000;
+	color: #fff;
 }
 
 button {

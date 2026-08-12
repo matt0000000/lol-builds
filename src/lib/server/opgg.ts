@@ -1,5 +1,5 @@
 import { cached, HOUR } from './cache';
-import { lookup, staticData } from './static-data';
+import { lookup, normalizeName, staticData } from './static-data';
 import { best, bestN } from '$lib/rank';
 import type { BuildPage, ItemSet, Role, RuneSet, SkillOrder } from '$lib/types';
 
@@ -71,7 +71,9 @@ function record(sample: Sample) {
 
 export async function buildPage(championKey: string, role: Role): Promise<BuildPage | null> {
 	const data = await staticData();
-	const champion = data.championByKey.get(championKey.toLowerCase());
+	const champion =
+		data.championByKey.get(championKey.toLowerCase()) ??
+		data.championByKey.get(normalizeName(championKey));
 	if (!champion) return null;
 
 	const { data: d } = await raw(champion.id, role);
